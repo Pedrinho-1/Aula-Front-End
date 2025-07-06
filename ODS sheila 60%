@@ -1,0 +1,262 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_TRABALHADORES 100
+#define TAM_NOME 50
+#define TAM_CPF 15
+
+typedef struct {
+    int id;
+    char nome[TAM_NOME];
+    char cpf[TAM_CPF];
+    char cargo[TAM_NOME];
+    float salario;
+    int horasTrabalhadasMes;
+    int ativo;
+} Trabalhador;
+
+Trabalhador trabalhadores[MAX_TRABALHADORES];
+int totalTrabalhadores = 0;
+int proximoId = 1;
+
+void limparBuffer();
+void cadastrarTrabalhador();
+void consultarTrabalhadorPorId();
+void consultarTrabalhadorPorNome();
+void atualizarDadosTrabalhador();
+void listarTrabalhadores();
+void exibirTrabalhador(Trabalhador t);
+void menuODS8();
+
+void limparBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+void cadastrarTrabalhador() {
+    if (totalTrabalhadores >= MAX_TRABALHADORES) {
+        printf("\nErro: Limite máximo de trabalhadores atingido!\n");
+        return;
+    }
+
+    printf("\n--- Cadastrar Novo Trabalhador ---\n");
+
+    trabalhadores[totalTrabalhadores].id = proximoId++;
+
+    printf("ID do Trabalhador: %d\n", trabalhadores[totalTrabalhadores].id);
+
+    printf("Nome completo: ");
+    fgets(trabalhadores[totalTrabalhadores].nome, TAM_NOME, stdin);
+    strtok(trabalhadores[totalTrabalhadores].nome, "\n");
+
+    printf("CPF (apenas números, ex: 12345678900): ");
+    fgets(trabalhadores[totalTrabalhadores].cpf, TAM_CPF, stdin);
+    strtok(trabalhadores[totalTrabalhadores].cpf, "\n");
+
+    printf("Cargo: ");
+    fgets(trabalhadores[totalTrabalhadores].cargo, TAM_NOME, stdin);
+    strtok(trabalhadores[totalTrabalhadores].cargo, "\n");
+
+    printf("Salário Mensal (R$): ");
+    scanf("%f", &trabalhadores[totalTrabalhadores].salario);
+    limparBuffer();
+
+    printf("Horas Trabalhadas no Mês: ");
+    scanf("%d", &trabalhadores[totalTrabalhadores].horasTrabalhadasMes);
+    limparBuffer();
+
+    trabalhadores[totalTrabalhadores].ativo = 1;
+
+    printf("\nTrabalhador '%s' cadastrado com sucesso! ID: %d\n",
+           trabalhadores[totalTrabalhadores].nome, trabalhadores[totalTrabalhadores].id);
+
+    totalTrabalhadores++;
+}
+
+void exibirTrabalhador(Trabalhador t) {
+    printf("\n Detalhes do Trabalhador (ID: %d)\n", t.id);
+    printf("Nome: %s\n", t.nome);
+    printf("CPF: %s\n", t.cpf);
+    printf("Cargo: %s\n", t.cargo);
+    printf("Salário: R$ %.2f\n", t.salario);
+    printf("Horas Trabalhadas (Mês): %d\n", t.horasTrabalhadasMes);
+    printf("Status: %s\n", t.ativo ? "Ativo" : "Inativo/Desligado");
+    printf("--\n");
+}
+
+void consultarTrabalhadorPorId() {
+    int idBusca;
+    printf("\n Consultar Trabalhador por ID \n");
+    printf("Digite o ID do trabalhador: ");
+    scanf("%d", &idBusca);
+    limparBuffer();
+
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (trabalhadores[i].id == idBusca) {
+            exibirTrabalhador(trabalhadores[i]);
+            return;
+        }
+    }
+    printf("Trabalhador com ID %d não encontrado.\n", idBusca);
+}
+
+void consultarTrabalhadorPorNome() {
+    char nomeBusca[TAM_NOME];
+    int encontrados = 0;
+    printf("\n--- Consultar Trabalhador por Nome ---\n");
+    printf("Digite parte ou o nome completo do trabalhador: ");
+    fgets(nomeBusca, TAM_NOME, stdin);
+    strtok(nomeBusca, "\n");
+
+    printf("\nResultados da Busca por '%s':\n", nomeBusca);
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (strstr(trabalhadores[i].nome, nomeBusca) != NULL) {
+            exibirTrabalhador(trabalhadores[i]);
+            encontrados++;
+        }
+    }
+
+    if (encontrados == 0) {
+        printf("Nenhum trabalhador encontrado com o nome '%s'.\n", nomeBusca);
+    }
+}
+
+void atualizarDadosTrabalhador() {
+    int idAtualizar;
+    printf("\n Atualizar Dados do Trabalhador \n");
+    printf("Digite o ID do trabalhador para atualizar: ");
+    scanf("%d", &idAtualizar);
+    limparBuffer();
+
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (trabalhadores[i].id == idAtualizar) {
+            printf("\nTrabalhador encontrado: %s\n", trabalhadores[i].nome);
+            printf("Quais dados deseja atualizar?\n");
+            printf("1 - Salário\n");
+            printf("2 - Horas Trabalhadas\n");
+            printf("3 - Status (Ativo/Inativo)\n");
+            printf("0 - Cancelar\n");
+            printf("Escolha uma opção: ");
+            int opcaoAtualizacao;
+            scanf("%d", &opcaoAtualizacao);
+            limparBuffer();
+
+            switch (opcaoAtualizacao) {
+                case 1:
+                    printf("Novo Salário (R$): ");
+                    scanf("%f", &trabalhadores[i].salario);
+                    limparBuffer();
+                    printf("Salário atualizado com sucesso!\n");
+                    break;
+                case 2:
+                    printf("Novas Horas Trabalhadas no Mês: ");
+                    scanf("%d", &trabalhadores[i].horasTrabalhadasMes);
+                    limparBuffer();
+                    printf("Horas trabalhadas atualizadas com sucesso!\n");
+                    break;
+                case 3:
+                    printf("Definir status (1 para Ativo, 0 para Inativo/Desligado): ");
+                    scanf("%d", &trabalhadores[i].ativo);
+                    limparBuffer();
+                    printf("Status atualizado com sucesso!\n");
+                    break;
+                case 0:
+                    printf("Atualização cancelada.\n");
+                    break;
+                default:
+                    printf("Opção de atualização inválida.\n");
+            }
+            return;
+        }
+    }
+    printf("Trabalhador com ID %d não encontrado para atualização.\n", idAtualizar);
+}
+
+void listarTrabalhadores() {
+    printf("\n--- Lista de Todos os Trabalhadores ---\n");
+    if (totalTrabalhadores == 0) {
+        printf("Nenhum trabalhador cadastrado ainda.\n");
+        return;
+    }
+
+    printf("%-5s %-30s %-15s %-20s %-10s %-10s %s\n",
+           "ID", "Nome", "CPF", "Cargo", "Salário", "Horas", "Status");
+    printf("--\n");
+
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        printf("%-5d %-30s %-15s %-20s %-10.2f %-10d %s\n",
+               trabalhadores[i].id,
+               trabalhadores[i].nome,
+               trabalhadores[i].cpf,
+               trabalhadores[i].cargo,
+               trabalhadores[i].salario,
+               trabalhadores[i].horasTrabalhadasMes,
+               trabalhadores[i].ativo ? "Ativo" : "Inativo");
+    }
+    printf("---\n");
+}
+
+void menuODS8() {
+    int opcao;
+    do {
+        printf("\n--- ODS Trabalho decente e crescimento econômico: Trabalho Decente e Crescimento Econômico ---\n");
+        printf("1 - Cadastrar Trabalhador\n");
+        printf("2 - Consultar Trabalhador por ID\n");
+        printf("3 - Consultar Trabalhador por Nome\n");
+        printf("4 - Atualizar Dados do Trabalhador\n");
+        printf("5 - Listar Todos os Trabalhadores\n");
+        printf("0 - Voltar ao Menu Principal\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+        limparBuffer();
+
+        switch(opcao) {
+            case 1:
+                cadastrarTrabalhador();
+                break;
+            case 2:
+                consultarTrabalhadorPorId();
+                break;
+            case 3:
+                consultarTrabalhadorPorNome();
+                break;
+            case 4:
+                atualizarDadosTrabalhador();
+                break;
+            case 5:
+                listarTrabalhadores();
+                break;
+            case 0:
+                printf("Voltando ao menu principal...\n");
+                break;
+            default:
+                printf("Opção inválida! Por favor, escolha novamente.\n");
+        }
+    } while(opcao != 0);
+}
+
+int main() {
+    int opcao;
+    do {
+        printf("\n--- Sistema de Gestão de Desenvolvimento Sustentável ---\n");
+        printf("1 - Gerenciar ODS Trabalho Decente e Crescimento Econômico\n");
+        printf("0 - Sair do Sistema\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+        limparBuffer();
+
+        switch(opcao) {
+            case 1:
+                menuODS8();
+                break;
+            case 0:
+                printf("Encerrando o Sistema. Até logo!\n");
+                break;
+            default:
+                printf("Opção inválida! Por favor, insira um número válido.\n");
+        }
+    } while(opcao != 0);
+
+    return 0;
+}
