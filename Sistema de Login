@@ -33,7 +33,7 @@ typedef struct {
 typedef struct {
     char username[TAM_USUARIO];
     char senha[TAM_SENHA];
-    int tipo; // 1 = Admin, 2 = Usuario comum
+    int tipo; 
 } Usuario;
 
 Usuario usuarios[MAX_USUARIOS] = {
