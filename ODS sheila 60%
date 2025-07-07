@@ -73,7 +73,6 @@ void cadastrarTrabalhador() {
 
     totalTrabalhadores++;
 }
-
 void exibirTrabalhador(Trabalhador t) {
     printf("\n Detalhes do Trabalhador (ID: %d)\n", t.id);
     printf("Nome: %s\n", t.nome);
@@ -84,7 +83,6 @@ void exibirTrabalhador(Trabalhador t) {
     printf("Status: %s\n", t.ativo ? "Ativo" : "Inativo/Desligado");
     printf("--\n");
 }
-
 void consultarTrabalhadorPorId() {
     int idBusca;
     printf("\n Consultar Trabalhador por ID \n");
@@ -100,7 +98,6 @@ void consultarTrabalhadorPorId() {
     }
     printf("Trabalhador com ID %d não encontrado.\n", idBusca);
 }
-
 void consultarTrabalhadorPorNome() {
     char nomeBusca[TAM_NOME];
     int encontrados = 0;
@@ -121,7 +118,6 @@ void consultarTrabalhadorPorNome() {
         printf("Nenhum trabalhador encontrado com o nome '%s'.\n", nomeBusca);
     }
 }
-
 void atualizarDadosTrabalhador() {
     int idAtualizar;
     printf("\n Atualizar Dados do Trabalhador \n");
