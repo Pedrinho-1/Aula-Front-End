@@ -71,14 +71,13 @@ int expandirArrayTrabalhadores() {
     trabalhadores = novoArray;
     capacidadeTrabalhadores = novaCapacidade;
     printf("\nMemória para trabalhadores expandida para %d vagas.\n", capacidadeTrabalhadores);
-    return 1; // Success
+    return 1; 
 }
 
 void carregarDadosDoArquivo() {
     FILE* arq = fopen(NOME_ARQUIVO, "rb");
     if (arq == NULL) {
         printf("Arquivo '%s' não encontrado ou não foi possível abrir para leitura. Começando com dados vazios.\n", NOME_ARQUIVO);
-        // Ensure initial memory allocation if file doesn't exist
         if (trabalhadores == NULL) {
             expandirArrayTrabalhadores();
         }
@@ -115,7 +114,6 @@ void cadastrarTrabalhador() {
             return;
         }
     }
-
 printf("\n--- Cadastrar Novo Trabalhador ---\n");
     trabalhadores[totalTrabalhadores].id = proximoId++;
     printf("ID do Trabalhador: %d\n", trabalhadores[totalTrabalhadores].id);
@@ -155,8 +153,7 @@ printf("\n--- Cadastrar Novo Trabalhador ---\n");
     totalTrabalhadores++;
     salvarDadosNoArquivo();
 }
-
-    void exibirTrabalhador(Trabalhador t) {
+ void exibirTrabalhador(Trabalhador t) {
     printf("\n--- Detalhes do Trabalhador (ID: %d) ---\n", t.id);
     printf("Nome: %s\n", t.nome);
     printf("CPF: %s\n", t.cpf);
@@ -199,7 +196,7 @@ void consultarTrabalhadorPorNome() {
     }
     printf("Digite parte ou o nome completo do trabalhador: ");
     fgets(nomeBusca, TAM_NOME, stdin);
-    nomeBusca[strcspn(nomeBusca, "\n")] = 0; // Remove newline
+    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
 
     printf("\nResultados da Busca por '%s':\n", nomeBusca);
     for (int i = 0; i < totalTrabalhadores; i++) {
@@ -222,7 +219,7 @@ void atualizarDadosTrabalhador() {
     }
     printf("Digite o ID do trabalhador para atualizar: ");
     scanf("%d", &idAtualizar);
-    limparBuffer(); // Clear buffer after scanf
+    limparBuffer(); 
 
     for (int i = 0; i < totalTrabalhadores; i++) {
         if (trabalhadores[i].id == idAtualizar) {
@@ -236,7 +233,7 @@ void atualizarDadosTrabalhador() {
             printf("Escolha uma opção: ");
             int opcaoAtualizacao;
             scanf("%d", &opcaoAtualizacao);
-            limparBuffer(); // Clear buffer after scanf
+            limparBuffer(); 
 
             switch (opcaoAtualizacao) {
                 case 1:
@@ -280,7 +277,6 @@ void atualizarDadosTrabalhador() {
     }
     printf("Trabalhador com ID %d não encontrado para atualização.\n", idAtualizar);
 }
-
 void removerTrabalhador() {
     int idRemover;
     printf("\n--- Remover/Desligar Trabalhador ---\n");
@@ -290,7 +286,7 @@ void removerTrabalhador() {
     }
     printf("Digite o ID do trabalhador para remover/desligar: ");
     scanf("%d", &idRemover);
-    limparBuffer(); // Clear buffer after scanf
+    limparBuffer();
 
     for (int i = 0; i < totalTrabalhadores; i++) {
         if (trabalhadores[i].id == idRemover) {
@@ -299,7 +295,7 @@ void removerTrabalhador() {
             printf("Confirmar desligamento/remoção de '%s'? (1 - Sim, 0 - Não): ", trabalhadores[i].nome);
             int confirmacao;
             scanf("%d", &confirmacao);
-            limparBuffer(); // Clear buffer after scanf
+            limparBuffer();
 
             if (confirmacao == 1) {
                 trabalhadores[i].ativo = 0; // Mark as inactive
@@ -360,7 +356,6 @@ void emitirAlertasCriticos() {
             alertasEncontrados++;
         }
     }
-
 printf("\n Trabalhadores Inativos/Desligados \n");
     for (int i = 0; i < totalTrabalhadores; i++) {
         if (!trabalhadores[i].ativo) {
@@ -434,14 +429,14 @@ void relatorioPorFaixaSalarial() {
     scanf("%f", &minSalario);
     printf("Digite o salário máximo da faixa: R$ ");
     scanf("%f", &maxSalario);
-    limparBuffer(); // Clear buffer after scanf
+    limparBuffer(); 
 
     int encontrados = 0;
     printf("\n--- Trabalhadores Ativos com Salário entre R$ %.2f e R$ %.2f ---\n", minSalario, maxSalario);
     printf("%-5s %-30s %-20s %-10s %s\n", "ID", "Nome", "Cargo", "Salário", "Status");
     printf("--------------------------------------------------------------------------------\n");
     for (int i = 0; i < totalTrabalhadores; i++) {
-        // Only include active workers in salary range report
+       
         if (trabalhadores[i].salario >= minSalario && trabalhadores[i].salario <= maxSalario && trabalhadores[i].ativo) {
             printf("%-5d %-30s %-20s %-10.2f %s\n",
                    trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cargo,
