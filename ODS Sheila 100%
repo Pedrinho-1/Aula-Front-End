@@ -16,7 +16,6 @@ typedef struct {
     char email[TAM_NOME];
 } Contato;
 
-
 typedef struct {
     int id;
     char nome[TAM_NOME];
@@ -57,12 +56,10 @@ void relatorioPorCargo();
 int string_compare_case_insensitive(const char *s1, const char *s2);
 void menuODS8();
 
-
 void limparBuffer() {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
-
 
 int expandirArrayTrabalhadores() {
     int novaCapacidade = capacidadeTrabalhadores == 0 ? TAMANHO_INICIAL_ARRAY : capacidadeTrabalhadores * FATOR_CRESCIMENTO_ARRAY;
@@ -76,7 +73,6 @@ int expandirArrayTrabalhadores() {
     printf("\nMemória para trabalhadores expandida para %d vagas.\n", capacidadeTrabalhadores);
     return 1; // Success
 }
-
 
 void carregarDadosDoArquivo() {
     FILE* arq = fopen(NOME_ARQUIVO, "rb");
@@ -172,7 +168,6 @@ printf("\n--- Cadastrar Novo Trabalhador ---\n");
     printf("Email: %s\n", t.contato.email);
     printf("---------------------------------------\n");
 }
-
 
 void consultarTrabalhadorPorId() {
     int idBusca;
@@ -286,7 +281,6 @@ void atualizarDadosTrabalhador() {
     printf("Trabalhador com ID %d não encontrado para atualização.\n", idAtualizar);
 }
 
-
 void removerTrabalhador() {
     int idRemover;
     printf("\n--- Remover/Desligar Trabalhador ---\n");
@@ -344,7 +338,6 @@ void listarTrabalhadores() {
     printf("--------------------------------------------------------------------------------------------------------------------\n");
 }
 
-// Emits critical alerts based on predefined criteria
 void emitirAlertasCriticos() {
     printf("\n--- Alertas de Situação Crítica ---\n");
     int alertasEncontrados = 0;
@@ -358,8 +351,7 @@ void emitirAlertasCriticos() {
             alertasEncontrados++;
         }
     }
-
-    int horasMinimasAlerta = 80;
+ int horasMinimasAlerta = 80;
     printf("\n--- Trabalhadores Ativos com menos de %d horas trabalhadas no mês ---\n", horasMinimasAlerta);
     for (int i = 0; i < totalTrabalhadores; i++) {
         if (trabalhadores[i].ativo && trabalhadores[i].horasTrabalhadasMes < horasMinimasAlerta) {
@@ -369,7 +361,7 @@ void emitirAlertasCriticos() {
         }
     }
 
-    printf("\n Trabalhadores Inativos/Desligados \n");
+printf("\n Trabalhadores Inativos/Desligados \n");
     for (int i = 0; i < totalTrabalhadores; i++) {
         if (!trabalhadores[i].ativo) {
             printf("INATIVO: ID %d - %s (CPF: %s) - Cargo: %s.\n",
@@ -390,15 +382,11 @@ int compararPorID(const void* a, const void* b) {
     Trabalhador* trabB = (Trabalhador*)b;
     return trabA->id - trabB->id;
 }
-
-// Comparison function for sorting by Name (for qsort)
 int compararPorNome(const void* a, const void* b) {
     Trabalhador* trabA = (Trabalhador*)a;
     Trabalhador* trabB = (Trabalhador*)b;
     return strcmp(trabA->nome, trabB->nome);
 }
-
-
 void ordenarTrabalhadoresPorID() {
     if (totalTrabalhadores == 0) {
         printf("Nenhum trabalhador para ordenar.\n");
@@ -408,8 +396,6 @@ void ordenarTrabalhadoresPorID() {
     printf("\nTrabalhadores ordenados por ID.\n");
     listarTrabalhadores();
 }
-
-
 void ordenarTrabalhadoresPorNome() {
     if (totalTrabalhadores == 0) {
         printf("Nenhum trabalhador para ordenar.\n");
@@ -419,8 +405,6 @@ void ordenarTrabalhadoresPorNome() {
     printf("\nTrabalhadores ordenados por Nome.\n");
     listarTrabalhadores();
 }
-
-// Generates a report of active or inactive employees
 void relatorioPorStatus(int status) {
     printf("\n--- Relatório de Trabalhadores %s ---\n", status ? "Ativos" : "Inativos/Desligados");
     int encontrados = 0;
@@ -439,7 +423,6 @@ void relatorioPorStatus(int status) {
     }
     printf("--------------------------------------------------------------------------------\n");
 }
-
 void relatorioPorFaixaSalarial() {
     float minSalario, maxSalario;
     printf("\n--- Relatório por Faixa Salarial ---\n");
@@ -471,8 +454,6 @@ void relatorioPorFaixaSalarial() {
     }
     printf("--------------------------------------------------------------------------------\n");
 }
-
-
 int string_compare_case_insensitive(const char *s1, const char *s2) {
     while (*s1 && *s2) {
         if (toupper((unsigned char)*s1) != toupper((unsigned char)*s2)) {
@@ -483,7 +464,6 @@ int string_compare_case_insensitive(const char *s1, const char *s2) {
     }
     return (int)toupper((unsigned char)*s1) - (int)toupper((unsigned char)*s2);
 }
-
 void relatorioPorCargo() {
     char cargoBusca[TAM_NOME];
     printf("\n--- Relatório por Cargo ---\n");
@@ -547,8 +527,6 @@ void relatorioPorCargo() {
         }
     } while (opcao != 0);
 }
-
-
 void menuODS8() {
     int opcao;
     do {
@@ -609,13 +587,13 @@ void menuODS8() {
 }
         
 int main() {
-    // Initial memory allocation
-    if (!expandirArrayTrabalhadores()) {
+    
+if (!expandirArrayTrabalhadores()) {
         printf("Erro fatal: Não foi possível alocar memória inicial. Encerrando.\n");
-        return 1; // Indicate error
+        return 1; 
     }
 
-    carregarDadosDoArquivo(); 
+carregarDadosDoArquivo(); 
 int opcao;
     do {
         printf("\n Sistema de Gestão de Desenvolvimento Sustentável \n");
@@ -643,12 +621,10 @@ int opcao;
 
     salvarDadosNoArquivo(); 
 
-    // Free dynamically allocated memory
-    if (trabalhadores != NULL) {
+if (trabalhadores != NULL) {
         free(trabalhadores);
         trabalhadores = NULL;
-        printf("\nMemória de trabalhadores liberada.\n");
+        printf("\n Memória de trabalhadores liberada.\n");
     }
-    
     return 0;
 }
