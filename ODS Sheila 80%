@@ -37,7 +37,7 @@ int expandirArrayTrabalhadores();
 void encolherArrayTrabalhadores();
 int cpfValido(const char* cpf);
 int string_compare_case_insensitive(const char *s1, const char *s2);
-char* strcasestr_custom(const char* haystack, const char* needle); // Custom strcasestr
+char* strcasestr_custom(const char* haystack, const char* needle); 
 
 void cadastrarTrabalhador();
 void consultarTrabalhadorPorId();
@@ -51,7 +51,7 @@ void exibirTrabalhador(Trabalhador t);
 void ordenarTrabalhadoresPorID();
 void ordenarTrabalhadoresPorNome();
 int compararPorID(const void* a, const void* b);
-int compararPorNome(const void* a, const void* b); // Uses case-insensitive comparison
+int compararPorNome(const void* a, const void* b); 
 
 void relatoriosFiltrados();
 void relatorioPorStatus(int status);
@@ -70,12 +70,12 @@ int expandirArrayTrabalhadores() {
     Trabalhador* novoArray = (Trabalhador*)realloc(trabalhadores, novaCapacidade * sizeof(Trabalhador));
     if (novoArray == NULL) {
         printf("Erro ao expandir o array de trabalhadores: Falta de memória.\n");
-        return 0; // Falha na expansão
+        return 0;
     }
     trabalhadores = novoArray;
     capacidadeTrabalhadores = novaCapacidade;
     printf("Array de trabalhadores expandido para %d posições.\n", capacidadeTrabalhadores);
-    return 1; // Sucesso na expansão
+    return 1; 
 }
 
 void encolherArrayTrabalhadores() {
@@ -102,18 +102,17 @@ int cpfValido(const char* cpf) {
     for (int i = 0; i < 11; i++) {
         if (!isdigit(cpf[i])) return 0;
     }
-    // Basic CPF validation (missing real CPF algorithm, but validates format)
+    
     return 1;
 }
 
-// Custom case-insensitive string search function
+
 char* strcasestr_custom(const char* haystack, const char* needle) {
     size_t len_needle = strlen(needle);
     if (!len_needle) return (char*)haystack; // Empty needle matches everything
     for (; *haystack; haystack++) {
         if (string_compare_case_insensitive(haystack, needle) == 0 && strlen(haystack) >= len_needle) {
-            // Check if the current portion of haystack matches needle case-insensitively
-            // And ensure there are enough characters in haystack to match the needle
+           
             int match = 1;
             for (size_t i = 0; i < len_needle; i++) {
                 if (tolower((unsigned char)haystack[i]) != tolower((unsigned char)needle[i])) {
