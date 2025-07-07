@@ -3,16 +3,22 @@
 #include <string.h>
 #include <ctype.h>
 
+
 #define TAM_NOME 50
 #define TAM_CPF 15
 #define TAM_CONTATO 20
 #define TAMANHO_INICIAL_ARRAY 5
 #define FATOR_CRESCIMENTO_ARRAY 2
+#define FATOR_ENCOLHIMENTO_ARRAY 4
 #define NOME_ARQUIVO "trabalhadores.dat"
 
-#define TAM_USUARIO 30
-#define TAM_SENHA 20
-#define MAX_USUARIOS 10 
+
+typedef enum {
+    UNAUTHENTICATED,
+    COMMON_USER,
+    ADMIN
+} UserRole;
+
 
 typedef struct {
     char telefone[TAM_CONTATO];
@@ -26,28 +32,44 @@ typedef struct {
     char cargo[TAM_NOME];
     float salario;
     int horasTrabalhadasMes;
-    int ativo;
+    int ativo; // 1 for active, 0 for inactive/terminated
     Contato contato;
 } Trabalhador;
 
-typedef struct {
-    char username[TAM_USUARIO];
-    char senha[TAM_SENHA];
-    int tipo; 
-} Usuario;
-
-Usuario usuarios[MAX_USUARIOS] = {
-    {"admin", "admin123", 1},
-    {"usuario", "1234", 2},
-    {"Pedro Augusto", "1603", 1}, 
-    {"Aluno Unijorge", "UJ@", 2}  
-};
-int totalUsuarios = 4; 
 
 Trabalhador* trabalhadores = NULL;
 int totalTrabalhadores = 0;
 int capacidadeTrabalhadores = 0;
 int proximoId = 1;
+
+
+void limparBuffer();
+int expandirArrayTrabalhadores();
+void encolherArrayTrabalhadores();
+int cpfValido(const char* cpf);
+int string_compare_case_insensitive(const char *s1, const char *s2);
+char* strcasestr_custom(const char* haystack, const char* needle);
+void carregarDadosDoArquivo();
+void salvarDadosNoArquivo();
+void cadastrarTrabalhador();
+void consultarTrabalhadorPorId();
+void consultarTrabalhadorPorNome();
+void atualizarDadosTrabalhador();
+void removerTrabalhador();
+void listarTrabalhadores();
+void emitirAlertasCriticos();
+void exibirTrabalhador(Trabalhador t);
+void ordenarTrabalhadoresPorID();
+void ordenarTrabalhadoresPorNome();
+int compararPorID(const void* a, const void* b);
+int compararPorNome(const void* a, const void* b);
+void relatoriosFiltrados();
+void relatorioPorStatus(int status);
+void relatorioPorFaixaSalarial();
+void relatorioPorCargo();
+UserRole realizarLogin();
+void menuODS8(UserRole userRole);
+
 
 void limparBuffer() {
     int c;
@@ -55,16 +77,91 @@ void limparBuffer() {
 }
 
 int expandirArrayTrabalhadores() {
-    int novaCapacidade = capacidadeTrabalhadores == 0 ? TAMANHO_INICIAL_ARRAY : capacidadeTrabalhadores * FATOR_CRESCIMENTO_ARRAY;
-    Trabalhador* novoArray = realloc(trabalhadores, novaCapacidade * sizeof(Trabalhador));
+    int novaCapacidade = (capacidadeTrabalhadores == 0) ? TAMANHO_INICIAL_ARRAY : capacidadeTrabalhadores * FATOR_CRESCIMENTO_ARRAY;
+    Trabalhador* novoArray = (Trabalhador*)realloc(trabalhadores, novaCapacidade * sizeof(Trabalhador));
     if (novoArray == NULL) {
-        printf("\nErro: Falha ao expandir a memória para trabalhadores!\n");
+        printf("Erro ao expandir o array de trabalhadores: Falta de memória.\n");
         return 0;
     }
     trabalhadores = novoArray;
     capacidadeTrabalhadores = novaCapacidade;
-    printf("\nMemória para trabalhadores expandida para %d vagas.\n", capacidadeTrabalhadores);
+    printf("Array de trabalhadores expandido para %d posições.\n", capacidadeTrabalhadores);
     return 1;
+}
+
+void encolherArrayTrabalhadores() {
+    if (capacidadeTrabalhadores > TAMANHO_INICIAL_ARRAY && totalTrabalhadores * FATOR_ENCOLHIMENTO_ARRAY < capacidadeTrabalhadores) {
+        int novaCapacidade = capacidadeTrabalhadores / FATOR_CRESCIMENTO_ARRAY;
+        if (novaCapacidade < TAMANHO_INICIAL_ARRAY) {
+            novaCapacidade = TAMANHO_INICIAL_ARRAY;
+        }
+        Trabalhador* novoArray = (Trabalhador*)realloc(trabalhadores, novaCapacidade * sizeof(Trabalhador));
+        if (novoArray == NULL) {
+            printf("Aviso: Falha ao encolher o array de trabalhadores, mantendo o tamanho atual.\n");
+            return;
+        }
+        trabalhadores = novoArray;
+        capacidadeTrabalhadores = novaCapacidade;
+        printf("Array de trabalhadores encolhido para %d posições.\n", capacidadeTrabalhadores);
+    }
+}
+
+int cpfValido(const char* cpf) {
+    if (strlen(cpf) != 11) return 0;
+    for (int i = 0; i < 11; i++) {
+        if (!isdigit(cpf[i])) return 0;
+    }
+    return 1;
+}
+
+int string_compare_case_insensitive(const char *s1, const char *s2) {
+    while (*s1 && *s2) {
+        if (tolower((unsigned char)*s1) != tolower((unsigned char)*s2)) {
+            return (int)tolower((unsigned char)*s1) - (int)tolower((unsigned char)*s2);
+        }
+        s1++;
+        s2++;
+    }
+    return (int)tolower((unsigned char)*s1) - (int)tolower((unsigned char)*s2);
+}
+
+char* strcasestr_custom(const char* haystack, const char* needle) {
+    size_t len_needle = strlen(needle);
+    if (!len_needle) return (char*)haystack;
+
+    for (; *haystack; haystack++) {
+        if (strlen(haystack) >= len_needle) {
+            int match = 1;
+            for (size_t i = 0; i < len_needle; i++) {
+                if (tolower((unsigned char)haystack[i]) != tolower((unsigned char)needle[i])) {
+                    match = 0;
+                    break;
+                }
+            }
+            if (match) {
+                return (char*)haystack;
+            }
+        }
+    }
+    return NULL;
+}
+
+void carregarDadosDoArquivo() {
+    FILE* arq = fopen(NOME_ARQUIVO, "rb");
+    if (arq == NULL) {
+        printf("Arquivo '%s' não encontrado ou não foi possível abrir para leitura. Começando com dados vazios.\n", NOME_ARQUIVO);
+        return;
+    }
+
+    fread(&totalTrabalhadores, sizeof(int), 1, arq);
+    fread(&proximoId, sizeof(int), 1, arq);
+
+    while (totalTrabalhadores > capacidadeTrabalhadores) {
+        expandirArrayTrabalhadores();
+    }
+    fread(trabalhadores, sizeof(Trabalhador), totalTrabalhadores, arq);
+    fclose(arq);
+    printf("Dados de trabalhadores carregados de '%s' com sucesso. Total: %d trabalhadores.\n", NOME_ARQUIVO, totalTrabalhadores);
 }
 
 void salvarDadosNoArquivo() {
@@ -75,28 +172,69 @@ void salvarDadosNoArquivo() {
     }
     fwrite(&totalTrabalhadores, sizeof(int), 1, arq);
     fwrite(&proximoId, sizeof(int), 1, arq);
+
     fwrite(trabalhadores, sizeof(Trabalhador), totalTrabalhadores, arq);
     fclose(arq);
     printf("\nDados de trabalhadores salvos em '%s' com sucesso.\n", NOME_ARQUIVO);
 }
 
-void carregarDadosDoArquivo() {
-    FILE* arq = fopen(NOME_ARQUIVO, "rb");
-    if (arq == NULL) {
-        printf("Arquivo '%s' não encontrado ou não foi possível abrir para leitura. Começando com dados vazios.\n", NOME_ARQUIVO);
-        if (trabalhadores == NULL) { 
-            expandirArrayTrabalhadores();
+void cadastrarTrabalhador() {
+    if (totalTrabalhadores >= capacidadeTrabalhadores) {
+        if (!expandirArrayTrabalhadores()) {
+            printf("\nNão foi possível cadastrar novo trabalhador devido à falta de memória.\n");
+            return;
         }
-        return;
     }
-    fread(&totalTrabalhadores, sizeof(int), 1, arq);
-    fread(&proximoId, sizeof(int), 1, arq);
-    while (totalTrabalhadores > capacidadeTrabalhadores) {
-        expandirArrayTrabalhadores();
-    }
-    fread(trabalhadores, sizeof(Trabalhador), totalTrabalhadores, arq);
-    fclose(arq);
-    printf("Dados de trabalhadores carregados de '%s' com sucesso. Total: %d trabalhadores.\n", NOME_ARQUIVO, totalTrabalhadores);
+
+    printf("\n--- Cadastrar Novo Trabalhador ---\n");
+
+    trabalhadores[totalTrabalhadores].id = proximoId++;
+
+    printf("ID do Trabalhador: %d\n", trabalhadores[totalTrabalhadores].id);
+
+    printf("Nome completo: ");
+    fgets(trabalhadores[totalTrabalhadores].nome, TAM_NOME, stdin);
+    strtok(trabalhadores[totalTrabalhadores].nome, "\n");
+
+    char temp_cpf[TAM_CPF];
+    do {
+        printf("CPF (11 dígitos, apenas números): ");
+        fgets(temp_cpf, TAM_CPF, stdin);
+        strtok(temp_cpf, "\n");
+
+        if (!cpfValido(temp_cpf)) {
+            printf("CPF inválido! Certifique-se de inserir 11 dígitos numéricos.\n");
+        }
+    } while (!cpfValido(temp_cpf));
+    strcpy(trabalhadores[totalTrabalhadores].cpf, temp_cpf);
+
+    printf("Cargo: ");
+    fgets(trabalhadores[totalTrabalhadores].cargo, TAM_NOME, stdin);
+    strtok(trabalhadores[totalTrabalhadores].cargo, "\n");
+
+    printf("Salário Mensal (R$): ");
+    scanf("%f", &trabalhadores[totalTrabalhadores].salario);
+    limparBuffer();
+
+    printf("Horas Trabalhadas no Mês: ");
+    scanf("%d", &trabalhadores[totalTrabalhadores].horasTrabalhadasMes);
+    limparBuffer();
+
+    printf("Telefone de Contato: ");
+    fgets(trabalhadores[totalTrabalhadores].contato.telefone, TAM_CONTATO, stdin);
+    strtok(trabalhadores[totalTrabalhadores].contato.telefone, "\n");
+
+    printf("Email de Contato: ");
+    fgets(trabalhadores[totalTrabalhadores].contato.email, TAM_NOME, stdin);
+    strtok(trabalhadores[totalTrabalhadores].contato.email, "\n");
+
+    trabalhadores[totalTrabalhadores].ativo = 1;
+
+    printf("\nTrabalhador '%s' cadastrado com sucesso! ID: %d\n",
+           trabalhadores[totalTrabalhadores].nome, trabalhadores[totalTrabalhadores].id);
+
+    totalTrabalhadores++;
+    salvarDadosNoArquivo();
 }
 
 void exibirTrabalhador(Trabalhador t) {
@@ -110,53 +248,6 @@ void exibirTrabalhador(Trabalhador t) {
     printf("Telefone: %s\n", t.contato.telefone);
     printf("Email: %s\n", t.contato.email);
     printf("---------------------------------------\n");
-}
-
-void cadastrarTrabalhador() {
-    if (totalTrabalhadores >= capacidadeTrabalhadores) {
-        if (!expandirArrayTrabalhadores()) {
-            printf("\nNão foi possível cadastrar novo trabalhador devido à falta de memória.\n");
-            return;
-        }
-    }
-
-    printf("\n Cadastrar Novo Trabalhador \n");
-    Trabalhador* t = &trabalhadores[totalTrabalhadores];
-    t->id = proximoId++;
-    printf("ID do Trabalhador: %d\n", t->id);
-
-    printf("Nome completo: ");
-    fgets(t->nome, TAM_NOME, stdin);
-    t->nome[strcspn(t->nome, "\n")] = 0;
-
-    printf("CPF (apenas números, ex: 12345678900): ");
-    fgets(t->cpf, TAM_CPF, stdin);
-    t->cpf[strcspn(t->cpf, "\n")] = 0;
-
-    printf("Cargo: ");
-    fgets(t->cargo, TAM_NOME, stdin);
-    t->cargo[strcspn(t->cargo, "\n")] = 0;
-
-    printf("Salário Mensal (R$): ");
-    scanf("%f", &t->salario);
-    limparBuffer();
-
-    printf("Horas Trabalhadas no Mês: ");
-    scanf("%d", &t->horasTrabalhadasMes);
-    limparBuffer();
-
-    printf("Telefone de Contato: ");
-    fgets(t->contato.telefone, TAM_CONTATO, stdin);
-    t->contato.telefone[strcspn(t->contato.telefone, "\n")] = 0;
-
-    printf("Email de Contato: ");
-    fgets(t->contato.email, TAM_NOME, stdin);
-    t->contato.email[strcspn(t->contato.email, "\n")] = 0;
-
-    t->ativo = 1;
-    totalTrabalhadores++;
-    salvarDadosNoArquivo();
-    printf("\nTrabalhador '%s' cadastrado com sucesso! ID: %d\n", t->nome, t->id);
 }
 
 void consultarTrabalhadorPorId() {
@@ -189,15 +280,16 @@ void consultarTrabalhadorPorNome() {
     }
     printf("Digite parte ou o nome completo do trabalhador: ");
     fgets(nomeBusca, TAM_NOME, stdin);
-    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
+    strtok(nomeBusca, "\n");
 
     printf("\nResultados da Busca por '%s':\n", nomeBusca);
     for (int i = 0; i < totalTrabalhadores; i++) {
-        if (strstr(trabalhadores[i].nome, nomeBusca) != NULL) {
+        if (strcasestr_custom(trabalhadores[i].nome, nomeBusca) != NULL) {
             exibirTrabalhador(trabalhadores[i]);
             encontrados++;
         }
     }
+
     if (encontrados == 0) {
         printf("Nenhum trabalhador encontrado com o nome '%s'.\n", nomeBusca);
     }
@@ -250,12 +342,10 @@ void atualizarDadosTrabalhador() {
                 case 4:
                     printf("Novo Telefone de Contato: ");
                     fgets(trabalhadores[i].contato.telefone, TAM_CONTATO, stdin);
-                    trabalhadores[i].contato.telefone[strcspn(trabalhadores[i].contato.telefone, "\n")] = 0;
-
+                    strtok(trabalhadores[i].contato.telefone, "\n");
                     printf("Novo Email de Contato: ");
                     fgets(trabalhadores[i].contato.email, TAM_NOME, stdin);
-                    trabalhadores[i].contato.email[strcspn(trabalhadores[i].contato.email, "\n")] = 0;
-                    
+                    strtok(trabalhadores[i].contato.email, "\n");
                     printf("Dados de contato atualizados com sucesso!\n");
                     break;
                 case 0:
@@ -284,17 +374,26 @@ void removerTrabalhador() {
 
     for (int i = 0; i < totalTrabalhadores; i++) {
         if (trabalhadores[i].id == idRemover) {
+            char nomeRemovido[TAM_NOME];
+            strcpy(nomeRemovido, trabalhadores[i].nome);
+
             printf("Trabalhador encontrado: %s (ID: %d, Status: %s)\n",
-                   trabalhadores[i].nome, trabalhadores[i].id, trabalhadores[i].ativo ? "Ativo" : "Inativo");
-            printf("Confirmar desligamento/remoção de '%s'? (1 - Sim, 0 - Não): ", trabalhadores[i].nome);
+                   nomeRemovido, trabalhadores[i].id, trabalhadores[i].ativo ? "Ativo" : "Inativo");
+
+            printf("Confirmar desligamento/remoção de '%s'? (1 - Sim, 0 - Não): ", nomeRemovido);
             int confirmacao;
             scanf("%d", &confirmacao);
             limparBuffer();
 
             if (confirmacao == 1) {
-                trabalhadores[i].ativo = 0;
-                printf("Trabalhador '%s' (ID: %d) marcado como INATIVO/DESLIGADO com sucesso.\n",
-                       trabalhadores[i].nome, trabalhadores[i].id);
+                for (int j = i; j < totalTrabalhadores - 1; j++) {
+                    trabalhadores[j] = trabalhadores[j + 1];
+                }
+                totalTrabalhadores--;
+                printf("Trabalhador '%s' (ID: %d) removido fisicamente do sistema.\n",
+                       nomeRemovido, idRemover);
+
+                encolherArrayTrabalhadores();
                 salvarDadosNoArquivo();
             } else {
                 printf("Remoção/desligamento cancelado.\n");
@@ -306,147 +405,380 @@ void removerTrabalhador() {
 }
 
 void listarTrabalhadores() {
-    printf("\n Lista de Todos os Trabalhadores \n");
+    printf("\n--- Lista de Todos os Trabalhadores ---\n");
     if (totalTrabalhadores == 0) {
         printf("Nenhum trabalhador cadastrado ainda.\n");
         return;
     }
-    printf("%-5s %-30s %-15s %-20s %-10s %-10s %-15s %s\n",
-           "ID", "Nome", "CPF", "Cargo", "Salário", "Horas", "Telefone", "Status");
-    printf("--------------------------------------------------------------------------------------------------------------------\n");
+
+    printf("%-5s %-30s %-15s %-20s %-10s %-10s %-10s %s\n",
+           "ID", "Nome", "CPF", "Cargo", "Salário", "Horas", "Status", "Telefone");
+    printf("----------------------------------------------------------------------------------------------------\n");
+
     for (int i = 0; i < totalTrabalhadores; i++) {
-        printf("%-5d %-30s %-15s %-20s %-10.2f %-10d %-15s %s\n",
+        printf("%-5d %-30s %-15s %-20s %-10.2f %-10d %-10s %s\n",
                trabalhadores[i].id,
                trabalhadores[i].nome,
                trabalhadores[i].cpf,
                trabalhadores[i].cargo,
                trabalhadores[i].salario,
                trabalhadores[i].horasTrabalhadasMes,
-               trabalhadores[i].contato.telefone,
-               trabalhadores[i].ativo ? "Ativo" : "Inativo");
+               trabalhadores[i].ativo ? "Ativo" : "Inativo",
+               trabalhadores[i].contato.telefone);
     }
-    printf("--------------------------------------------------------------------------------------------------------------------\n");
+    printf("----------------------------------------------------------------------------------------------------\n");
 }
 
-int fazerLogin() {
-    char usuarioInput[TAM_USUARIO], senhaInput[TAM_SENHA];
-    printf("\n--- Login ---\n");
-    printf("Usuário: ");
-    fgets(usuarioInput, TAM_USUARIO, stdin);
-    usuarioInput[strcspn(usuarioInput, "\n")] = 0;
-    printf("Senha: ");
-    fgets(senhaInput, TAM_SENHA, stdin);
-    senhaInput[strcspn(senhaInput, "\n")] = 0;
+void emitirAlertasCriticos() {
+    printf("\n--- Alertas de Situação Crítica ---\n");
+    int alertasEncontrados = 0;
 
-    for (int i = 0; i < totalUsuarios; i++) {
-        if (strcmp(usuarioInput, usuarios[i].username) == 0 &&
-            strcmp(senhaInput, usuarios[i].senha) == 0) {
-            printf("Login bem-sucedido! Bem-vindo(a), %s.\n", usuarios[i].username);
-            return usuarios[i].tipo;
+    printf("\n--- Trabalhadores com Salário abaixo de R$ 1500.00 (Ativos) ---\n");
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (trabalhadores[i].ativo && trabalhadores[i].salario < 1500.00) {
+            printf("ALERTA: ID %d - %s (Cargo: %s) - Salário: R$ %.2f (Abaixo do mínimo recomendado).\n",
+                   trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cargo, trabalhadores[i].salario);
+            alertasEncontrados++;
         }
     }
-    printf("Usuário ou senha inválidos.\n");
-    return 0; 
+
+    printf("\n--- Trabalhadores com menos de 80 horas trabalhadas no mês (Ativos) ---\n");
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (trabalhadores[i].ativo && trabalhadores[i].horasTrabalhadasMes < 80) {
+            printf("ALERTA: ID %d - %s (Cargo: %s) - Horas: %d (Potencial subutilização ou erro de registro).\n",
+                   trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cargo, trabalhadores[i].horasTrabalhadasMes);
+            alertasEncontrados++;
+        }
+    }
+
+    printf("\n--- Trabalhadores Inativos/Desligados ---\n");
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (!trabalhadores[i].ativo) {
+            printf("INATIVO: ID %d - %s (CPF: %s) - Cargo: %s.\n",
+                   trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cpf, trabalhadores[i].cargo);
+            alertasEncontrados++;
+        }
+    }
+
+    if (alertasEncontrados == 0) {
+        printf("\nNenhum alerta crítico encontrado no momento.\n");
+    }
 }
 
-void menuODS8(int tipoUsuario) {
+int compararPorID(const void* a, const void* b) {
+    Trabalhador* trabA = (Trabalhador*)a;
+    Trabalhador* trabB = (Trabalhador*)b;
+    return trabA->id - trabB->id;
+}
+
+int compararPorNome(const void* a, const void* b) {
+    Trabalhador* trabA = (Trabalhador*)a;
+    Trabalhador* trabB = (Trabalhador*)b;
+    return string_compare_case_insensitive(trabA->nome, trabB->nome);
+}
+
+void ordenarTrabalhadoresPorID() {
+    if (totalTrabalhadores == 0) {
+        printf("Nenhum trabalhador para ordenar.\n");
+        return;
+    }
+    qsort(trabalhadores, totalTrabalhadores, sizeof(Trabalhador), compararPorID);
+    printf("\nTrabalhadores ordenados por ID.\n");
+    listarTrabalhadores();
+}
+
+void ordenarTrabalhadoresPorNome() {
+    if (totalTrabalhadores == 0) {
+        printf("Nenhum trabalhador para ordenar.\n");
+        return;
+    }
+    qsort(trabalhadores, totalTrabalhadores, sizeof(Trabalhador), compararPorNome);
+    printf("\nTrabalhadores ordenados por Nome.\n");
+    listarTrabalhadores();
+}
+
+void relatoriosFiltrados() {
     int opcao;
     do {
-        printf("\n--- Menu ODS 8 (%s) ---\n", tipoUsuario == 1 ? "Admin" : "Usuário Comum");
-        printf("1 - Cadastrar Trabalhador\n");
-        printf("2 - Consultar por ID\n");
-        printf("3 - Consultar por Nome\n");
-        if (tipoUsuario == 1) { 
-            printf("4 - Atualizar Trabalhador\n");
-            printf("5 - Remover Trabalhador\n");
-        }
-        printf("6 - Listar Todos\n");
-        printf("0 - Sair do ODS 8\n");
-        printf("Escolha uma opção: ");
-        scanf("%d", &opcao);
-        limparBuffer();
-
-        switch(opcao) {
-            case 1:
-                if (tipoUsuario == 1) {
-                    cadastrarTrabalhador();
-                } else {
-                    printf("Acesso negado. Apenas administradores podem cadastrar trabalhadores.\n");
-                }
-                break;
-            case 2:
-                consultarTrabalhadorPorId();
-                break;
-            case 3:
-                consultarTrabalhadorPorNome();
-                break;
-            case 4:
-                if (tipoUsuario == 1) {
-                    atualizarDadosTrabalhador();
-                } else {
-                    printf("Acesso negado. Apenas administradores podem atualizar dados de trabalhadores.\n");
-                }
-                break;
-            case 5:
-                if (tipoUsuario == 1) {
-                    removerTrabalhador();
-                } else {
-                    printf("Acesso negado. Apenas administradores podem remover trabalhadores.\n");
-                }
-                break;
-            case 6:
-                listarTrabalhadores();
-                break;
-            case 0:
-                printf("Saindo do menu ODS 8...\n");
-                break;
-            default:
-                printf("Opção inválida! Por favor, escolha novamente.\n");
-        }
-
-    } while(opcao != 0);
-}
-
-int main() {
-    if (!expandirArrayTrabalhadores()) {
-        printf("Erro fatal: Não foi possível alocar memória inicial. Encerrando.\n");
-        return 1;
-    }
-    carregarDadosDoArquivo();
-
-    int tipoUsuario = fazerLogin();
-    if (tipoUsuario == 0) {
-        printf("Login inválido. Encerrando o sistema.\n");
-        return 1;
-    }
-
-    int opcao;
-    do {
-        printf("\n Sistema de Gestão de Desenvolvimento Sustentável \n");
-        printf("1 - Gerenciar Trabalho Decente e Crescimento Econômico\n");
-        printf("0 - Sair do Sistema\n");
+        printf("\n--- Relatórios e Filtros ---\n");
+        printf("1 - Listar Trabalhadores Ativos\n");
+        printf("2 - Listar Trabalhadores Inativos/Desligados\n");
+        printf("3 - Listar Trabalhadores por Faixa Salarial\n");
+        printf("4 - Listar Trabalhadores por Cargo\n");
+        printf("5 - Ordenar e Listar por ID\n");
+        printf("6 - Ordenar e Listar por Nome\n");
+        printf("0 - Voltar ao Menu ODS 8\n");
         printf("Escolha uma opção: ");
         scanf("%d", &opcao);
         limparBuffer();
 
         switch (opcao) {
             case 1:
-                menuODS8(tipoUsuario);
+                relatorioPorStatus(1);
+                break;
+            case 2:
+                relatorioPorStatus(0);
+                break;
+            case 3:
+                relatorioPorFaixaSalarial();
+                break;
+            case 4:
+                relatorioPorCargo();
+                break;
+            case 5:
+                ordenarTrabalhadoresPorID();
+                break;
+            case 6:
+                ordenarTrabalhadoresPorNome();
                 break;
             case 0:
-                printf("Encerrando o Sistema. Até logo!\n");
+                printf("Voltando ao menu ODS 8...\n");
+                break;
+            default:
+                printf("Opção inválida! Por favor, escolha novamente.\n");
+        }
+    } while (opcao != 0);
+}
+
+void relatorioPorStatus(int status) {
+    printf("\n--- Relatório de Trabalhadores %s ---\n", status ? "Ativos" : "Inativos/Desligados");
+    int encontrados = 0;
+    printf("%-5s %-30s %-20s %-10s %s\n", "ID", "Nome", "Cargo", "Salário", "Horas");
+    printf("---------------------------------------------------------------------------\n");
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (trabalhadores[i].ativo == status) {
+            printf("%-5d %-30s %-20s %-10.2f %d\n",
+                   trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cargo,
+                   trabalhadores[i].salario, trabalhadores[i].horasTrabalhadasMes);
+            encontrados++;
+        }
+    }
+    if (encontrados == 0) {
+        printf("Nenhum trabalhador %s encontrado.\n", status ? "ativo" : "inativo/desligado");
+    }
+    printf("---------------------------------------------------------------------------\n");
+}
+
+void relatorioPorFaixaSalarial() {
+    float minSalario, maxSalario;
+    printf("\n--- Relatório de Trabalhadores por Faixa Salarial ---\n");
+    if (totalTrabalhadores == 0) {
+        printf("Nenhum trabalhador cadastrado.\n");
+        return;
+    }
+    printf("Digite o salário mínimo da faixa (R$): ");
+    scanf("%f", &minSalario);
+    limparBuffer();
+    printf("Digite o salário máximo da faixa (R$): ");
+    scanf("%f", &maxSalario);
+    limparBuffer();
+
+    int encontrados = 0;
+    printf("\nTrabalhadores com salário entre R$ %.2f e R$ %.2f:\n", minSalario, maxSalario);
+    printf("%-5s %-30s %-20s %-10s %s\n", "ID", "Nome", "Cargo", "Salário", "Status");
+    printf("---------------------------------------------------------------------------\n");
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (trabalhadores[i].salario >= minSalario && trabalhadores[i].salario <= maxSalario) {
+            printf("%-5d %-30s %-20s %-10.2f %s\n",
+                   trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cargo,
+                   trabalhadores[i].salario, trabalhadores[i].ativo ? "Ativo" : "Inativo");
+            encontrados++;
+        }
+    }
+    if (encontrados == 0) {
+        printf("Nenhum trabalhador encontrado nesta faixa salarial.\n");
+    }
+    printf("---------------------------------------------------------------------------\n");
+}
+
+void relatorioPorCargo() {
+    char cargoBusca[TAM_NOME];
+    printf("\n--- Relatório de Trabalhadores por Cargo ---\n");
+    if (totalTrabalhadores == 0) {
+        printf("Nenhum trabalhador cadastrado.\n");
+        return;
+    }
+    printf("Digite o cargo para filtrar: ");
+    fgets(cargoBusca, TAM_NOME, stdin);
+    strtok(cargoBusca, "\n");
+
+    int encontrados = 0;
+    printf("\nTrabalhadores no cargo '%s':\n", cargoBusca);
+    printf("%-5s %-30s %-15s %-10s %s\n", "ID", "Nome", "CPF", "Salário", "Status");
+    printf("---------------------------------------------------------------------------\n");
+    for (int i = 0; i < totalTrabalhadores; i++) {
+        if (string_compare_case_insensitive(trabalhadores[i].cargo, cargoBusca) == 0) {
+            printf("%-5d %-30s %-15s %-10.2f %s\n",
+                   trabalhadores[i].id, trabalhadores[i].nome, trabalhadores[i].cpf,
+                   trabalhadores[i].salario, trabalhadores[i].ativo ? "Ativo" : "Inativo");
+            encontrados++;
+        }
+    }
+    if (encontrados == 0) {
+        printf("Nenhum trabalhador encontrado para o cargo '%s'.\n", cargoBusca);
+    }
+    printf("---------------------------------------------------------------------------\n");
+}
+
+
+UserRole realizarLogin() {
+    char username[TAM_NOME];
+    char password[TAM_NOME];
+    int tentativas = 3;
+
+    printf("\n--- Tela de Login ---\n");
+
+    while (tentativas > 0) {
+        printf("Usuário: ");
+        fgets(username, TAM_NOME, stdin);
+        strtok(username, "\n");
+
+        printf("Senha: ");
+        fgets(password, TAM_NOME, stdin);
+        strtok(password, "\n");
+
+     
+        if (strcmp(username, "Pedro Augusto") == 0 && strcmp(password, "1603") == 0) {
+            printf("\nLogin de Administrador bem-sucedido! Bem-vindo, Pedro Augusto.\n");
+            return ADMIN;
+        }
+        
+        else if (strcmp(username, "Aluno Unijorge") == 0 && strcmp(password, "UJ@") == 0) {
+            printf("\nLogin de Usuário Comum bem-sucedido! Bem-vindo, Aluno Unijorge.\n");
+            return COMMON_USER;
+        } else {
+            tentativas--;
+            printf("Usuário ou senha incorretos. Tentativas restantes: %d\n", tentativas);
+        }
+    }
+    printf("\nNúmero máximo de tentativas excedido. Encerrando o sistema.\n");
+    return UNAUTHENTICATED; // Retorna não autenticado após falha
+}
+
+
+void menuODS8(UserRole userRole) { 
+    int opcao;
+    do {
+        printf("\n--- Gerenciamento de Trabalho Decente e Crescimento Econômico (ODS 8) ---\n");
+        printf("1 - Cadastrar Trabalhador\n");
+        printf("2 - Consultar Trabalhador por ID\n");
+        printf("3 - Consultar Trabalhador por Nome\n");
+        printf("4 - Atualizar Dados do Trabalhador\n");
+        printf("5 - Remover/Desligar Trabalhador\n");
+        printf("6 - Listar Todos os Trabalhadores\n");
+        printf("7 - Emitir Alertas Críticos\n");
+        printf("8 - Relatórios e Filtros\n");
+        printf("0 - Voltar ao Menu Principal\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+        limparBuffer(); 
+
+        switch(opcao) {
+            case 1:
+                if (userRole == ADMIN) {
+                    cadastrarTrabalhador();
+                } else {
+                    printf("Acesso negado. Apenas administradores podem cadastrar trabalhadores.\n");
+                }
+                break;
+            case 2:
+                consultarTrabalhadorPorId(); // Acesso liberado para todos
+                break;
+            case 3:
+                consultarTrabalhadorPorNome(); // Acesso liberado para todos
+                break;
+            case 4:
+                if (userRole == ADMIN) {
+                    atualizarDadosTrabalhador();
+                } else {
+                    printf("Acesso negado. Apenas administradores podem atualizar dados de trabalhadores.\n");
+                }
+                break;
+            case 5:
+                if (userRole == ADMIN) {
+                    removerTrabalhador();
+                } else {
+                    printf("Acesso negado. Apenas administradores podem remover trabalhadores.\n");
+                }
+                break;
+            case 6:
+                listarTrabalhadores(); // Acesso liberado para todos
+                break;
+            case 7:
+                if (userRole == ADMIN) {
+                    emitirAlertasCriticos();
+                } else {
+                    printf("Acesso negado. Apenas administradores podem emitir alertas críticos.\n");
+                }
+                break;
+            case 8:
+                if (userRole == ADMIN) {
+                    relatoriosFiltrados();
+                } else {
+                    printf("Acesso negado. Apenas administradores podem acessar relatórios e filtros.\n");
+                }
+                break;
+            case 0:
+                printf("Voltando ao menu principal...\n");
+                break;
+            default:
+                printf("Opção inválida! Por favor, escolha novamente.\n");
+        }
+    } while(opcao != 0);
+}
+
+
+
+int main() {
+
+    if (!expandirArrayTrabalhadores()) {
+        printf("Erro fatal: Não foi possível alocar memória inicial. Encerrando.\n");
+        return 1;
+    }
+
+    carregarDadosDoArquivo(); // Load data at the start
+
+    UserRole currentUserRole = UNAUTHENTICATED;
+
+
+    currentUserRole = realizarLogin();
+
+    if (currentUserRole == UNAUTHENTICATED) {
+        
+        if (trabalhadores != NULL) {
+            free(trabalhadores);
+            trabalhadores = NULL;
+        }
+        return 0;
+    }
+
+    int opcao;
+    do {
+        printf("\n--- Sistema de Gestão de Desenvolvimento Sustentável ---\n");
+        printf("1 - Gerenciar ODS Trabalho Decente e Crescimento Econômico (ODS 8)\n");
+        printf("0 - Sair do Sistema\n");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
+        limparBuffer(); // Clear buffer after scanf
+
+        switch(opcao) {
+            case 1:
+                menuODS8(currentUserRole); // Passa o papel do usuário para o menu ODS 8
+                break;
+            case 0:
+                printf("Encerrando o Sistema. Até logo!\n\n");
                 break;
             default:
                 printf("Opção inválida! Por favor, insira um número válido.\n");
         }
-
     } while(opcao != 0);
 
-    salvarDadosNoArquivo();
+   
     if (trabalhadores != NULL) {
         free(trabalhadores);
         trabalhadores = NULL;
-        printf("\nMemória de trabalhadores liberada.\n");
+        printf("Memória de trabalhadores liberada.\n");
     }
+
     return 0;
 }
