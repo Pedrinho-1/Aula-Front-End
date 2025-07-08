@@ -652,10 +652,10 @@ UserRole realizarLogin() {
         }
     }
     printf("\nNúmero máximo de tentativas excedido. Encerrando o sistema.\n");
-    return UNAUTHENTICATED; // Retorna não autenticado após falha
+    return UNAUTHENTICATED; 
 }
 
-void menuODS8(UserRole userRole) { // Agora recebe o papel do usuário
+void menuODS8(UserRole userRole) { 
     int opcao;
     do {
         printf("\n--- Gerenciamento de Trabalho Decente e Crescimento Econômico (ODS 8) ---\n");
@@ -670,7 +670,7 @@ void menuODS8(UserRole userRole) { // Agora recebe o papel do usuário
         printf("0 - Voltar ao Menu Principal\n");
         printf("Escolha uma opção: ");
         scanf("%d", &opcao);
-        limparBuffer(); // Clear buffer after scanf
+        limparBuffer(); 
 
         switch(opcao) {
             case 1:
@@ -681,10 +681,10 @@ void menuODS8(UserRole userRole) { // Agora recebe o papel do usuário
                 }
                 break;
             case 2:
-                consultarTrabalhadorPorId(); // Acesso liberado para todos
+                consultarTrabalhadorPorId(); 
                 break;
             case 3:
-                consultarTrabalhadorPorNome(); // Acesso liberado para todos
+                consultarTrabalhadorPorNome(); 
                 break;
             case 4:
                 if (userRole == ADMIN) {
@@ -701,7 +701,7 @@ void menuODS8(UserRole userRole) { // Agora recebe o papel do usuário
                 }
                 break;
             case 6:
-                listarTrabalhadores(); // Acesso liberado para todos
+                listarTrabalhadores();
                 break;
             case 7:
                 if (userRole == ADMIN) {
@@ -727,13 +727,13 @@ void menuODS8(UserRole userRole) { // Agora recebe o papel do usuário
 }
 
 int main() {
-    // Attempt to allocate initial memory before loading data
+  
     if (!expandirArrayTrabalhadores()) {
         printf("Erro fatal: Não foi possível alocar memória inicial. Encerrando.\n");
         return 1;
     }
 
-    carregarDadosDoArquivo(); // Load data at the start
+    carregarDadosDoArquivo();
 
     UserRole currentUserRole = UNAUTHENTICATED;
 
@@ -759,7 +759,7 @@ int main() {
 
         switch(opcao) {
             case 1:
-                menuODS8(currentUserRole); // Passa o papel do usuário para o menu ODS 8
+                menuODS8(currentUserRole); 
                 break;
             case 0:
                 printf("Encerrando o Sistema. Até logo!\n\n");
