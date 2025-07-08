@@ -32,7 +32,7 @@ typedef struct {
     char cargo[TAM_NOME];
     float salario;
     int horasTrabalhadasMes;
-    int ativo; // 1 for active, 0 for inactive/terminated
+    int ativo; 
     Contato contato;
 } Trabalhador;
 
@@ -69,7 +69,6 @@ void relatorioPorFaixaSalarial();
 void relatorioPorCargo();
 UserRole realizarLogin();
 void menuODS8(UserRole userRole);
-
 
 void limparBuffer() {
     int c;
@@ -465,6 +464,8 @@ void emitirAlertasCriticos() {
     }
 }
 
+
+
 int compararPorID(const void* a, const void* b) {
     Trabalhador* trabA = (Trabalhador*)a;
     Trabalhador* trabB = (Trabalhador*)b;
@@ -620,7 +621,6 @@ void relatorioPorCargo() {
     printf("---------------------------------------------------------------------------\n");
 }
 
-
 UserRole realizarLogin() {
     char username[TAM_NOME];
     char password[TAM_NOME];
@@ -637,12 +637,12 @@ UserRole realizarLogin() {
         fgets(password, TAM_NOME, stdin);
         strtok(password, "\n");
 
-     
+        // Admin: Pedro Augusto, Senha: 1603
         if (strcmp(username, "Pedro Augusto") == 0 && strcmp(password, "1603") == 0) {
             printf("\nLogin de Administrador bem-sucedido! Bem-vindo, Pedro Augusto.\n");
             return ADMIN;
         }
-        
+        // Usuário Comum: Aluno Unijorge, Senha: UJ@
         else if (strcmp(username, "Aluno Unijorge") == 0 && strcmp(password, "UJ@") == 0) {
             printf("\nLogin de Usuário Comum bem-sucedido! Bem-vindo, Aluno Unijorge.\n");
             return COMMON_USER;
@@ -655,8 +655,7 @@ UserRole realizarLogin() {
     return UNAUTHENTICATED; // Retorna não autenticado após falha
 }
 
-
-void menuODS8(UserRole userRole) { 
+void menuODS8(UserRole userRole) { // Agora recebe o papel do usuário
     int opcao;
     do {
         printf("\n--- Gerenciamento de Trabalho Decente e Crescimento Econômico (ODS 8) ---\n");
@@ -671,7 +670,7 @@ void menuODS8(UserRole userRole) {
         printf("0 - Voltar ao Menu Principal\n");
         printf("Escolha uma opção: ");
         scanf("%d", &opcao);
-        limparBuffer(); 
+        limparBuffer(); // Clear buffer after scanf
 
         switch(opcao) {
             case 1:
@@ -727,10 +726,8 @@ void menuODS8(UserRole userRole) {
     } while(opcao != 0);
 }
 
-
-
 int main() {
-
+    // Attempt to allocate initial memory before loading data
     if (!expandirArrayTrabalhadores()) {
         printf("Erro fatal: Não foi possível alocar memória inicial. Encerrando.\n");
         return 1;
@@ -740,12 +737,11 @@ int main() {
 
     UserRole currentUserRole = UNAUTHENTICATED;
 
-
     currentUserRole = realizarLogin();
 
     if (currentUserRole == UNAUTHENTICATED) {
-        
-        if (trabalhadores != NULL) {
+     
+         if (trabalhadores != NULL) {
             free(trabalhadores);
             trabalhadores = NULL;
         }
@@ -759,7 +755,7 @@ int main() {
         printf("0 - Sair do Sistema\n");
         printf("Escolha uma opção: ");
         scanf("%d", &opcao);
-        limparBuffer(); // Clear buffer after scanf
+        limparBuffer(); 
 
         switch(opcao) {
             case 1:
@@ -773,12 +769,11 @@ int main() {
         }
     } while(opcao != 0);
 
-   
-    if (trabalhadores != NULL) {
+  if (trabalhadores != NULL) {
         free(trabalhadores);
         trabalhadores = NULL;
         printf("Memória de trabalhadores liberada.\n");
     }
 
-    return 0;
+  return 0;
 }
